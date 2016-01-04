@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Face Detector</string>
+    <string name="DetectFaces">Detect Faces</string>
+    <string name="Send">Send</string>
+</resources>
