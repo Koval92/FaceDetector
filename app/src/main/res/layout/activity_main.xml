@@ -43,7 +43,8 @@
                 android:layout_gravity="center_horizontal"
                 android:longClickable="false"
                 android:max="100"
-                android:progress="100" />
+                android:progress="0"
+                android:indeterminate="false" />
 
             <TextView
                 android:id="@+id/sizeTextView"

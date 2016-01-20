@@ -21,6 +21,9 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+
 public class MainActivity extends AppCompatActivity {
     public static final int THUMBNAIL_WIDTH = 400;
     private static final int CAMERA_REQUEST = 1888;
@@ -32,8 +35,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView scaleTextView;
 
     private String imagePath;
-    private int width;
-    private int height;
+    private int originalWidth;
+    private int originalHeight;
+    private int scaledWidth;
+    private int scaledHeight;
     private Bitmap thumbnail;
 
     @Override
@@ -41,15 +46,22 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        initializeLayoutObjects();
+        setListeners();
+
+        replaceImage(Environment.getExternalStorageDirectory() + "/" + "faces.jpg");
+    }
+
+    private void initializeLayoutObjects() {
         imageView = (ImageView) this.findViewById(R.id.imageView);
         detectFacesButton = (Button) this.findViewById(R.id.detectFacesButton);
         sendButton = (Button) this.findViewById(R.id.sendButton);
         photoButton = (Button) this.findViewById(R.id.photoButton);
         scaleSeekBar = (SeekBar) this.findViewById(R.id.scaleSeekBar);
         scaleTextView = (TextView) this.findViewById(R.id.sizeTextView);
+    }
 
-        replaceImage(Environment.getExternalStorageDirectory() + "/" + "faces.jpg");
-
+    private void setListeners() {
         photoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -76,7 +88,9 @@ public class MainActivity extends AppCompatActivity {
         scaleSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                scaleTextView.setText("Image size: " + width * progress / 100 + " x " + height * progress / 100);
+                scaledWidth = originalWidth * progress / 100;
+                scaledHeight = originalHeight * progress / 100;
+                scaleTextView.setText("Image size: " + scaledWidth + " x " + scaledHeight);
             }
 
             @Override
@@ -95,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAMERA_REQUEST && resultCode == RESULT_OK) {
             replaceImage(getLastImagePath());
-            scaleSeekBar.setProgress(100);
         }
     }
 
@@ -121,16 +134,18 @@ public class MainActivity extends AppCompatActivity {
         imagePath = path;
         thumbnail = null;
         Bitmap image = BitmapFactory.decodeFile(imagePath);
-        width = image.getWidth();
-        height = image.getHeight();
+        originalWidth = image.getWidth();
+        originalHeight = image.getHeight();
 
         int dstWidth = THUMBNAIL_WIDTH;
         int dstHeight = image.getHeight() * dstWidth / image.getWidth();
 
         thumbnail = Bitmap.createScaledBitmap(image, dstWidth, dstHeight, false);
         imageView.setImageBitmap(thumbnail);
+        scaleSeekBar.setProgress(100);
 
-        Log.i("image", width + " x " + height);
+        Log.i("imagePath", path);
+        Log.i("image", originalWidth + " x " + originalHeight);
         Log.i("thumb", thumbnail.getWidth() + " x " + thumbnail.getHeight());
     }
 
@@ -141,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
         options.inMutable = true;
 
         Bitmap image = BitmapFactory.decodeFile(imagePath, options);
+        image = Bitmap.createScaledBitmap(image, scaledWidth, scaledHeight, false);
         int MAX_FACES = 1;
 
         FaceDetector face_detector = new FaceDetector(image.getWidth(), image.getHeight(), MAX_FACES);
@@ -149,8 +165,27 @@ public class MainActivity extends AppCompatActivity {
         // The bitmap must be in 565 format (for now).
         int faceCount = face_detector.findFaces(image, faces);
         Log.d("Face_Detection", "Face Count: " + String.valueOf(faceCount));
+        Log.d("Face_Detection", "Image size: " + image.getWidth() + " x " + image.getHeight());
 
         drawFaces(image, faces, faceCount);
+        saveBitmapWithFaces(image);
+    }
+
+    private void saveBitmapWithFaces(Bitmap image) {
+        File resultFile = new File(Environment.getExternalStorageDirectory(), "result.jpg");
+        if (resultFile.exists()) {
+            boolean deleted = resultFile.delete();
+            Log.d("saveBitmap", "deleted: " + deleted);
+        }
+        try {
+            FileOutputStream out = new FileOutputStream(resultFile);
+            image.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            out.flush();
+            out.close();
+            Log.d("saveBitmap", "saved to " + resultFile.getAbsolutePath() + ", size: " + resultFile.length());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void drawFaces(Bitmap image, FaceDetector.Face[] faces, int facesCount) {
