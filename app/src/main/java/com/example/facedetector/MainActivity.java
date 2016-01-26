@@ -1,6 +1,7 @@
 package com.example.facedetector;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -20,6 +21,14 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.dropbox.client2.DropboxAPI;
+import com.dropbox.client2.android.AndroidAuthSession;
+import com.dropbox.client2.session.AccessTokenPair;
+import com.dropbox.client2.session.AppKeyPair;
+import com.dropbox.client2.session.Session;
+import com.dropbox.client2.session.TokenPair;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,19 +36,25 @@ import java.io.FileOutputStream;
 public class MainActivity extends AppCompatActivity {
     public static final int THUMBNAIL_WIDTH = 400;
     private static final int CAMERA_REQUEST = 1888;
+    private final static String DROPBOX_NAME = "dropbox_prefs";
+    private final static String ACCESS_KEY = "bhemmp4tnge1z2v";
+    private final static String ACCESS_SECRET = "1lyrkonah3k2irv";
     private ImageView imageView;
     private Button detectFacesButton;
     private Button sendButton;
     private Button photoButton;
     private SeekBar scaleSeekBar;
     private TextView scaleTextView;
-
     private String imagePath;
+    private String resultPath;
     private int originalWidth;
     private int originalHeight;
     private int scaledWidth;
     private int scaledHeight;
     private Bitmap thumbnail;
+    private DropboxAPI<AndroidAuthSession> dropboxAPI;
+    private boolean isLoggedIn;
+    private Button loginButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,9 +62,53 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         initializeLayoutObjects();
-        setListeners();
-
+        setOnClickListeners();
+        resultPath = Environment.getExternalStorageDirectory() + "/result.jpg";
         replaceImage(Environment.getExternalStorageDirectory() + "/" + "faces.jpg");
+        configureDropbox();
+    }
+
+    private void configureDropbox() {
+        loggedIn(false);
+
+        AndroidAuthSession session;
+        AppKeyPair pair = new AppKeyPair(ACCESS_KEY, ACCESS_SECRET);
+        SharedPreferences prefs = getSharedPreferences(DROPBOX_NAME, 0);
+        String key = prefs.getString(ACCESS_KEY, null);
+        String secret = prefs.getString(ACCESS_SECRET, null);
+
+        if (key != null && secret != null) {
+            AccessTokenPair token = new AccessTokenPair(key, secret);
+            session = new AndroidAuthSession(pair, Session.AccessType.APP_FOLDER, token);
+        } else {
+            session = new AndroidAuthSession(pair, Session.AccessType.APP_FOLDER);
+        }
+
+        dropboxAPI = new DropboxAPI<AndroidAuthSession>(session);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        AndroidAuthSession session = dropboxAPI.getSession();
+        if (session.authenticationSuccessful()) {
+            try {
+                session.finishAuthentication();
+
+                TokenPair tokens = session.getAccessTokenPair();
+                SharedPreferences prefs = getSharedPreferences(DROPBOX_NAME, 0);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString(ACCESS_KEY, tokens.key);
+                editor.putString(ACCESS_SECRET, tokens.secret);
+                editor.commit();
+
+                loggedIn(true);
+            } catch (IllegalStateException e) {
+                Toast.makeText(this, "Error during Dropbox authentication",
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void initializeLayoutObjects() {
@@ -59,9 +118,10 @@ public class MainActivity extends AppCompatActivity {
         photoButton = (Button) this.findViewById(R.id.photoButton);
         scaleSeekBar = (SeekBar) this.findViewById(R.id.scaleSeekBar);
         scaleTextView = (TextView) this.findViewById(R.id.sizeTextView);
+        loginButton = (Button) this.findViewById(R.id.loginButton);
     }
 
-    private void setListeners() {
+    private void setOnClickListeners() {
         photoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -103,6 +163,32 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("scaleSeekBar", "onStopTrackingTouch");
             }
         });
+
+        loginButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isLoggedIn) {
+                    dropboxAPI.getSession().unlink();
+                    loggedIn(false);
+                } else {
+                    dropboxAPI.getSession().startAuthentication(MainActivity.this);
+                }
+            }
+        });
+
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DropboxUploader upload = new DropboxUploader(sendButton.getContext(), dropboxAPI, resultPath);
+                upload.execute();
+            }
+        });
+    }
+
+    public void loggedIn(boolean isLogged) {
+        isLoggedIn = isLogged;
+        sendButton.setEnabled(isLogged);
+        loginButton.setText(isLogged ? "Logout" : "Login");
     }
 
     @Override
@@ -172,7 +258,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveBitmapWithFaces(Bitmap image) {
-        File resultFile = new File(Environment.getExternalStorageDirectory(), "result.jpg");
+        resultPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/result.jpg";
+        File resultFile = new File(resultPath);
         if (resultFile.exists()) {
             boolean deleted = resultFile.delete();
             Log.d("saveBitmap", "deleted: " + deleted);

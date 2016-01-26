@@ -41,10 +41,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
+                android:indeterminate="false"
                 android:longClickable="false"
                 android:max="100"
-                android:progress="0"
-                android:indeterminate="false" />
+                android:progress="0" />
 
             <TextView
                 android:id="@+id/sizeTextView"
@@ -70,6 +70,13 @@
                 android:text="@string/DetectFaces" />
 
             <Button
+                android:id="@+id/loginButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Login" />
+
+            <Button
                 android:id="@+id/sendButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -79,6 +86,7 @@
                 android:layout_below="@+id/detectFacesButton"
                 android:layout_centerHorizontal="true"
                 android:layout_gravity="center_horizontal"
+                android:enabled="false"
                 android:text="@string/Send" />
         </LinearLayout>
     </ScrollView>
