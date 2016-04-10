@@ -16,6 +16,9 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -34,27 +37,29 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 public class MainActivity extends AppCompatActivity {
-    public static final int THUMBNAIL_WIDTH = 400;
+    private static final int THUMBNAIL_WIDTH = 400;
     private static final int CAMERA_REQUEST = 1888;
     private final static String DROPBOX_NAME = "dropbox_prefs";
     private final static String ACCESS_KEY = "bhemmp4tnge1z2v";
     private final static String ACCESS_SECRET = "1lyrkonah3k2irv";
+    private DropboxAPI<AndroidAuthSession> dropboxAPI;
     private ImageView imageView;
     private Button detectFacesButton;
     private Button sendButton;
-    private Button photoButton;
+    private Button makePhotoButton;
+    private Button selectPhotoButton;
+    private Button loginButton;
     private SeekBar scaleSeekBar;
     private TextView scaleTextView;
+    private TextView pathTextView;
     private String imagePath;
     private String resultPath;
+    private Bitmap thumbnail;
     private int originalWidth;
     private int originalHeight;
     private int scaledWidth;
     private int scaledHeight;
-    private Bitmap thumbnail;
-    private DropboxAPI<AndroidAuthSession> dropboxAPI;
     private boolean isLoggedIn;
-    private Button loginButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +71,19 @@ public class MainActivity extends AppCompatActivity {
         resultPath = Environment.getExternalStorageDirectory() + "/result.jpg";
         replaceImage(Environment.getExternalStorageDirectory() + "/" + "faces.jpg");
         configureDropbox();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Toast.makeText(this, item + " clicked", Toast.LENGTH_SHORT).show();
+        return true;
     }
 
     private void configureDropbox() {
@@ -101,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putString(ACCESS_KEY, tokens.key);
                 editor.putString(ACCESS_SECRET, tokens.secret);
-                editor.commit();
+                editor.apply();
 
                 loggedIn(true);
             } catch (IllegalStateException e) {
@@ -115,18 +133,27 @@ public class MainActivity extends AppCompatActivity {
         imageView = (ImageView) this.findViewById(R.id.imageView);
         detectFacesButton = (Button) this.findViewById(R.id.detectFacesButton);
         sendButton = (Button) this.findViewById(R.id.sendButton);
-        photoButton = (Button) this.findViewById(R.id.photoButton);
+        makePhotoButton = (Button) this.findViewById(R.id.makePhotoButton);
+        selectPhotoButton = (Button) this.findViewById(R.id.selectPhotoButton);
         scaleSeekBar = (SeekBar) this.findViewById(R.id.scaleSeekBar);
         scaleTextView = (TextView) this.findViewById(R.id.sizeTextView);
+        pathTextView = (TextView) this.findViewById(R.id.pathTextView);
         loginButton = (Button) this.findViewById(R.id.loginButton);
     }
 
     private void setOnClickListeners() {
-        photoButton.setOnClickListener(new View.OnClickListener() {
+        makePhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 startActivityForResult(cameraIntent, CAMERA_REQUEST);
+            }
+        });
+
+        selectPhotoButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(MainActivity.this, "Not yet implemented", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -138,19 +165,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d("sendButton", "clicked");
-            }
-        });
-
         scaleSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 scaledWidth = originalWidth * progress / 100;
                 scaledHeight = originalHeight * progress / 100;
-                scaleTextView.setText("Image size: " + scaledWidth + " x " + scaledHeight);
+                scaleTextView.setText(getString(R.string.image_size, scaledWidth, scaledHeight));
             }
 
             @Override
@@ -229,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
         thumbnail = Bitmap.createScaledBitmap(image, dstWidth, dstHeight, false);
         imageView.setImageBitmap(thumbnail);
         scaleSeekBar.setProgress(100);
+        pathTextView.setText(getString(R.string.path, path));
 
         Log.i("imagePath", path);
         Log.i("image", originalWidth + " x " + originalHeight);
@@ -236,7 +257,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void detectFaces() {
-        // Set internal configuration to RGB_565
+        long startTime = System.nanoTime();
+
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inPreferredConfig = Bitmap.Config.RGB_565;
         options.inMutable = true;
@@ -248,10 +270,15 @@ public class MainActivity extends AppCompatActivity {
         FaceDetector face_detector = new FaceDetector(image.getWidth(), image.getHeight(), MAX_FACES);
 
         FaceDetector.Face[] faces = new FaceDetector.Face[MAX_FACES];
-        // The bitmap must be in 565 format (for now).
+
+        long midTime = System.nanoTime();
+
         int faceCount = face_detector.findFaces(image, faces);
+
+        long endTime = System.nanoTime();
         Log.d("Face_Detection", "Face Count: " + String.valueOf(faceCount));
         Log.d("Face_Detection", "Image size: " + image.getWidth() + " x " + image.getHeight());
+        Toast.makeText(MainActivity.this, "Detecting finished in " + (endTime - startTime) / 1000000 + " ms", Toast.LENGTH_SHORT).show();
 
         drawFaces(image, faces, faceCount);
         saveBitmapWithFaces(image);
