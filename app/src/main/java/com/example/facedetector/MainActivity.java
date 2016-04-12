@@ -240,6 +240,14 @@ public class MainActivity extends AppCompatActivity {
         imagePath = path;
         thumbnail = null;
         Bitmap image = BitmapFactory.decodeFile(imagePath);
+
+        if (image == null) {
+            Log.e("replaceImage", "image is null");
+            Toast.makeText(this, "Couldn't load image", Toast.LENGTH_SHORT).show();
+            Bitmap.Config config = Bitmap.Config.RGB_565;
+            image = Bitmap.createBitmap(THUMBNAIL_WIDTH, THUMBNAIL_WIDTH, config);
+        }
+
         originalWidth = image.getWidth();
         originalHeight = image.getHeight();
 
@@ -264,6 +272,13 @@ public class MainActivity extends AppCompatActivity {
         options.inMutable = true;
 
         Bitmap image = BitmapFactory.decodeFile(imagePath, options);
+
+        if (image == null) {
+            Log.e("detectFaces", "image is null");
+            Toast.makeText(this, "Couldn't load image", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         image = Bitmap.createScaledBitmap(image, scaledWidth, scaledHeight, false);
         int MAX_FACES = 1;
 
