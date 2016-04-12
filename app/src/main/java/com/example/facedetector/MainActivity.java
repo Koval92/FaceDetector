@@ -35,14 +35,16 @@ import com.dropbox.client2.session.TokenPair;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.HashSet;
 
 public class MainActivity extends AppCompatActivity {
+    public final static String PATHS_PREFS = "path_prefs";
     private static final int THUMBNAIL_WIDTH = 400;
     private static final int CAMERA_REQUEST = 1888;
     private static final int GALLERY_REQUEST = 4564;
-    private final static String DROPBOX_NAME = "dropbox_prefs";
-    private final static String ACCESS_KEY = "bhemmp4tnge1z2v";
-    private final static String ACCESS_SECRET = "1lyrkonah3k2irv";
+    private final static String DROPBOX_PREFS = "dropbox_prefs";
+    private final static String DB_ACCESS_KEY = "bhemmp4tnge1z2v";
+    private final static String DB_ACCESS_SECRET = "1lyrkonah3k2irv";
     private DropboxAPI<AndroidAuthSession> dropboxAPI;
     private ImageView imageView;
     private Button detectFacesButton;
@@ -61,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private int scaledWidth;
     private int scaledHeight;
     private boolean isLoggedIn;
+    private HashSet<String> imagePaths;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
         initializeLayoutObjects();
         setOnClickListeners();
         resultPath = Environment.getExternalStorageDirectory() + "/result.jpg";
+        imagePaths = (HashSet<String>) getSharedPreferences(PATHS_PREFS, MODE_PRIVATE).getStringSet(PATHS_PREFS, new HashSet<String>());
+        imagePaths.add(resultPath);
         replaceImage(Environment.getExternalStorageDirectory() + "/" + "faces.jpg");
         configureDropbox();
     }
@@ -91,10 +96,10 @@ public class MainActivity extends AppCompatActivity {
         loggedIn(false);
 
         AndroidAuthSession session;
-        AppKeyPair pair = new AppKeyPair(ACCESS_KEY, ACCESS_SECRET);
-        SharedPreferences prefs = getSharedPreferences(DROPBOX_NAME, 0);
-        String key = prefs.getString(ACCESS_KEY, null);
-        String secret = prefs.getString(ACCESS_SECRET, null);
+        AppKeyPair pair = new AppKeyPair(DB_ACCESS_KEY, DB_ACCESS_SECRET);
+        SharedPreferences prefs = getSharedPreferences(DROPBOX_PREFS, 0);
+        String key = prefs.getString(DB_ACCESS_KEY, null);
+        String secret = prefs.getString(DB_ACCESS_SECRET, null);
 
         if (key != null && secret != null) {
             AccessTokenPair token = new AccessTokenPair(key, secret);
@@ -116,10 +121,10 @@ public class MainActivity extends AppCompatActivity {
                 session.finishAuthentication();
 
                 TokenPair tokens = session.getAccessTokenPair();
-                SharedPreferences prefs = getSharedPreferences(DROPBOX_NAME, 0);
+                SharedPreferences prefs = getSharedPreferences(DROPBOX_PREFS, 0);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putString(ACCESS_KEY, tokens.key);
-                editor.putString(ACCESS_SECRET, tokens.secret);
+                editor.putString(DB_ACCESS_KEY, tokens.key);
+                editor.putString(DB_ACCESS_SECRET, tokens.secret);
                 editor.apply();
 
                 loggedIn(true);
@@ -212,12 +217,17 @@ public class MainActivity extends AppCompatActivity {
         loginButton.setText(isLogged ? "Logout" : "Login");
     }
 
+    //// TODO: CLEAN THIS METHOD!!!
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAMERA_REQUEST && resultCode == RESULT_OK) {
-            replaceImage(getLastImagePath());
+            String lastImagePath = getLastImagePath();
+            imagePaths.add(lastImagePath);
+            getSharedPreferences(PATHS_PREFS, MODE_PRIVATE).edit().remove(PATHS_PREFS).apply();
+            getSharedPreferences(PATHS_PREFS, MODE_PRIVATE).edit().putStringSet(PATHS_PREFS, imagePaths).apply();
+            replaceImage(lastImagePath);
         } else if (requestCode == GALLERY_REQUEST && resultCode == RESULT_OK) {
-            String path = data.getStringExtra(GalleryActivity.RESULT_PATH_EXTRA);
+            String path = data.getStringExtra(getString(R.string.chosen_path_extra));
             Toast.makeText(this, "Chosen photo: " + path, Toast.LENGTH_SHORT).show();
             replaceImage(path);
         } else {
@@ -239,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
             Log.e("lastImagePath", "null cursor or no files");
         }
 
-        Log.i("Last Image Path", path);
+        Log.i("Last Image Path", (path == null) ? "null" : path);
         return path;
     }
 
@@ -266,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
         scaleSeekBar.setProgress(100);
         pathTextView.setText(getString(R.string.path, path));
 
-        Log.i("imagePath", path);
+        Log.i("imagePath", (path == null) ? "null" : path);
         Log.i("image", originalWidth + " x " + originalHeight);
         Log.i("thumb", thumbnail.getWidth() + " x " + thumbnail.getHeight());
     }
