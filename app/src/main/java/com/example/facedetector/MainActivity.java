@@ -39,6 +39,7 @@ import java.io.FileOutputStream;
 public class MainActivity extends AppCompatActivity {
     private static final int THUMBNAIL_WIDTH = 400;
     private static final int CAMERA_REQUEST = 1888;
+    private static final int GALLERY_REQUEST = 4564;
     private final static String DROPBOX_NAME = "dropbox_prefs";
     private final static String ACCESS_KEY = "bhemmp4tnge1z2v";
     private final static String ACCESS_SECRET = "1lyrkonah3k2irv";
@@ -123,8 +124,7 @@ public class MainActivity extends AppCompatActivity {
 
                 loggedIn(true);
             } catch (IllegalStateException e) {
-                Toast.makeText(this, "Error during Dropbox authentication",
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Error during Dropbox authentication", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -153,7 +153,8 @@ public class MainActivity extends AppCompatActivity {
         selectPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(MainActivity.this, "Not yet implemented", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(getApplicationContext(), GalleryActivity.class);
+                startActivityForResult(intent, GALLERY_REQUEST);
             }
         });
 
@@ -215,6 +216,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAMERA_REQUEST && resultCode == RESULT_OK) {
             replaceImage(getLastImagePath());
+        } else if (requestCode == GALLERY_REQUEST && resultCode == RESULT_OK) {
+            String path = data.getStringExtra(GalleryActivity.RESULT_PATH_EXTRA);
+            Toast.makeText(this, "Chosen photo: " + path, Toast.LENGTH_SHORT).show();
+            replaceImage(path);
+        } else {
+            Toast.makeText(this, "Unknown activity result", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -229,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
             path = cursor.getString(column_index);
             cursor.close();
         } else {
-            Log.wtf("lastImagePath", "null cursor or no files");
+            Log.e("lastImagePath", "null cursor or no files");
         }
 
         Log.i("Last Image Path", path);
