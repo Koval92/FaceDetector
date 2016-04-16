@@ -35,10 +35,9 @@ import com.dropbox.client2.session.TokenPair;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.HashSet;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
-    public final static String PATHS_PREFS = "path_prefs";
     private static final int THUMBNAIL_WIDTH = 400;
     private static final int CAMERA_REQUEST = 1888;
     private static final int GALLERY_REQUEST = 4564;
@@ -63,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     private int scaledWidth;
     private int scaledHeight;
     private boolean isLoggedIn;
-    private HashSet<String> imagePaths;
+    private Set<String> imagePaths;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,9 +72,13 @@ public class MainActivity extends AppCompatActivity {
         initializeLayoutObjects();
         setOnClickListeners();
         resultPath = Environment.getExternalStorageDirectory() + "/result.jpg";
-        imagePaths = (HashSet<String>) getSharedPreferences(PATHS_PREFS, MODE_PRIVATE).getStringSet(PATHS_PREFS, new HashSet<String>());
-        imagePaths.add(resultPath);
-        replaceImage(Environment.getExternalStorageDirectory() + "/" + "faces.jpg");
+        imagePaths = Utils.loadImagePaths(getApplicationContext()) ;
+
+        String testImagePath = Environment.getExternalStorageDirectory() + "/" + "faces.jpg";
+        imagePaths.add(testImagePath);
+        Utils.saveImagePaths(getApplicationContext(), imagePaths);
+        replaceImage(testImagePath);
+
         configureDropbox();
     }
 
@@ -159,6 +162,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(getApplicationContext(), GalleryActivity.class);
+                intent.putExtra(getString(R.string.chosen_path_extra), imagePath);
                 startActivityForResult(intent, GALLERY_REQUEST);
             }
         });
@@ -223,17 +227,17 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == CAMERA_REQUEST && resultCode == RESULT_OK) {
             String lastImagePath = getLastImagePath();
             imagePaths.add(lastImagePath);
-            getSharedPreferences(PATHS_PREFS, MODE_PRIVATE).edit().remove(PATHS_PREFS).apply();
-            getSharedPreferences(PATHS_PREFS, MODE_PRIVATE).edit().putStringSet(PATHS_PREFS, imagePaths).apply();
+            Utils.saveImagePaths(getApplicationContext(), imagePaths);
             replaceImage(lastImagePath);
         } else if (requestCode == GALLERY_REQUEST && resultCode == RESULT_OK) {
             String path = data.getStringExtra(getString(R.string.chosen_path_extra));
-            Toast.makeText(this, "Chosen photo: " + path, Toast.LENGTH_SHORT).show();
             replaceImage(path);
         } else {
             Toast.makeText(this, "Unknown activity result", Toast.LENGTH_SHORT).show();
         }
     }
+
+
 
     public String getLastImagePath() {
         String path = null;

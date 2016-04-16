@@ -11,4 +11,8 @@
     <string name="path">Path: %s</string>
     <string name="image_size">Image size: %1$d x %2$d</string>
     <string name="chosen_path_extra">chosen_path</string>
+    <string name="selected_path">"Selected path:\n%s"</string>
+    <string name="delete">Delete</string>
+    <string name="preview">Preview</string>
+    <string name="select">Select</string>
 </resources>

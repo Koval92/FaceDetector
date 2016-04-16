@@ -5,27 +5,55 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class GalleryActivity extends AppCompatActivity {
 
-    Button testButton;
-    TextView textView;
-    String path = ">>test_path<<";
+    Button selectButton;
+    Button deleteButton;
+    Button previewButton;
+    ListView pathsListView;
+    TextView pathTextView;
+    String path;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
 
-        testButton = (Button) findViewById(R.id.testButton);
-        textView = (TextView) findViewById(R.id.textView);
+        selectButton = (Button) findViewById(R.id.selectButton);
+        deleteButton = (Button) findViewById(R.id.deleteButton);
+        previewButton = (Button) findViewById(R.id.previewButton);
+        pathsListView = (ListView) findViewById(R.id.pathsListView);
+        pathTextView = (TextView) findViewById(R.id.pathTextView);
 
-        testButton.setOnClickListener(new View.OnClickListener() {
+        final Set<String> pathsSet = Utils.loadImagePaths(getApplicationContext());
+        final List<String> paths = new ArrayList<String>(pathsSet);
+        path = getIntent().getStringExtra(getString(R.string.chosen_path_extra));
+        pathTextView.setText(getString(R.string.selected_path, path));
+
+        final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_single_choice, paths);
+        pathsListView.setAdapter(adapter);
+
+        pathsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+                path = paths.get(position);
+                pathTextView.setText(getString(R.string.selected_path, path));
+            }
+        });
+
+        selectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent returnIntent = new Intent();
@@ -35,10 +63,24 @@ public class GalleryActivity extends AppCompatActivity {
             }
         });
 
-        Set<String> paths = getSharedPreferences(MainActivity.PATHS_PREFS, MODE_PRIVATE).getStringSet("path_prefs", new HashSet<String>());
-        for (String path : paths) {
-            textView.append(path + "\n");
-        }
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                paths.remove(path);
+                pathsSet.remove(path);
+                Utils.saveImagePaths(getApplicationContext(), pathsSet);
+                adapter.notifyDataSetChanged();
+                int pos = 0;
+                pathsListView.performItemClick(pathsListView.getChildAt(pos), pos, pathsListView.getItemIdAtPosition(pos));
+            }
+        });
+
+        previewButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(getApplicationContext(), "not implemented yet", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
 }
