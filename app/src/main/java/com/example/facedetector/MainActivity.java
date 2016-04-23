@@ -5,11 +5,6 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.PointF;
-import android.media.FaceDetector;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -33,9 +28,8 @@ import com.dropbox.client2.session.AppKeyPair;
 import com.dropbox.client2.session.Session;
 import com.dropbox.client2.session.TokenPair;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
     private static final int THUMBNAIL_WIDTH = 400;
@@ -55,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView scaleTextView;
     private TextView pathTextView;
     private String imagePath;
-    private String resultPath;
     private Bitmap thumbnail;
     private int originalWidth;
     private int originalHeight;
@@ -71,7 +64,6 @@ public class MainActivity extends AppCompatActivity {
 
         initializeLayoutObjects();
         setOnClickListeners();
-        resultPath = Environment.getExternalStorageDirectory() + "/result.jpg";
         imagePaths = Utils.loadImagePaths(getApplicationContext()) ;
 
         String testImagePath = Environment.getExternalStorageDirectory() + "/" + "faces.jpg";
@@ -209,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                DropboxUploader upload = new DropboxUploader(sendButton.getContext(), dropboxAPI, resultPath);
+                DropboxUploader upload = new DropboxUploader(sendButton.getContext(), dropboxAPI, Utils.getResultPath());
                 upload.execute();
             }
         });
@@ -236,8 +228,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Unknown activity result", Toast.LENGTH_SHORT).show();
         }
     }
-
-
 
     public String getLastImagePath() {
         String path = null;
@@ -286,72 +276,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void detectFaces() {
-        long startTime = System.nanoTime();
-
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inPreferredConfig = Bitmap.Config.RGB_565;
-        options.inMutable = true;
-
-        Bitmap image = BitmapFactory.decodeFile(imagePath, options);
-
-        if (image == null) {
-            Log.e("detectFaces", "image is null");
-            Toast.makeText(this, "Couldn't load image", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        image = Bitmap.createScaledBitmap(image, scaledWidth, scaledHeight, false);
-        int MAX_FACES = 1;
-
-        FaceDetector face_detector = new FaceDetector(image.getWidth(), image.getHeight(), MAX_FACES);
-
-        FaceDetector.Face[] faces = new FaceDetector.Face[MAX_FACES];
-
-        long midTime = System.nanoTime();
-
-        int faceCount = face_detector.findFaces(image, faces);
-
-        long endTime = System.nanoTime();
-        Log.d("Face_Detection", "Face Count: " + String.valueOf(faceCount));
-        Log.d("Face_Detection", "Image size: " + image.getWidth() + " x " + image.getHeight());
-        Toast.makeText(MainActivity.this, "Detecting finished in " + (endTime - startTime) / 1000000 + " ms", Toast.LENGTH_SHORT).show();
-
-        drawFaces(image, faces, faceCount);
-        saveBitmapWithFaces(image);
-    }
-
-    private void saveBitmapWithFaces(Bitmap image) {
-        resultPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/result.jpg";
-        File resultFile = new File(resultPath);
-        if (resultFile.exists()) {
-            boolean deleted = resultFile.delete();
-            Log.d("saveBitmap", "deleted: " + deleted);
-        }
+        FaceDetectorTask task = new FaceDetectorTask(getApplicationContext(), imagePath, scaledWidth, scaledHeight);
+        Bitmap image = null;
         try {
-            FileOutputStream out = new FileOutputStream(resultFile);
-            image.compress(Bitmap.CompressFormat.JPEG, 100, out);
-            out.flush();
-            out.close();
-            Log.d("saveBitmap", "saved to " + resultFile.getAbsolutePath() + ", size: " + resultFile.length());
-        } catch (Exception e) {
+            image = task.execute().get();
+        } catch (InterruptedException e) {
             e.printStackTrace();
-        }
-    }
-
-    public void drawFaces(Bitmap image, FaceDetector.Face[] faces, int facesCount) {
-        Canvas canvas = new Canvas(image);
-
-        canvas.drawBitmap(image, 0, 0, null);
-        Paint tmp_paint = new Paint();
-        PointF tmp_point = new PointF();
-
-        for (int i = 0; i < facesCount; i++) {
-            FaceDetector.Face face = faces[i];
-            tmp_paint.setColor(Color.RED);
-            tmp_paint.setAlpha(100);
-
-            face.getMidPoint(tmp_point);
-            canvas.drawCircle(tmp_point.x, tmp_point.y, face.eyesDistance(), tmp_paint);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
         }
 
         int dstWidth = THUMBNAIL_WIDTH;
