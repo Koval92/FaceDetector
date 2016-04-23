@@ -21,6 +21,7 @@
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -30,6 +31,7 @@
             android:launchMode="singleTask">
             <intent-filter>
                 <data android:scheme="db-bhemmp4tnge1z2v" />
+
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -37,6 +39,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".GalleryActivity" />
+        <activity android:name=".OptionsActivity"></activity>
     </application>
 
 </manifest>

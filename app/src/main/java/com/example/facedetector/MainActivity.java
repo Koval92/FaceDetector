@@ -7,7 +7,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -65,11 +64,9 @@ public class MainActivity extends AppCompatActivity {
         initializeLayoutObjects();
         setOnClickListeners();
         imagePaths = Utils.loadImagePaths(getApplicationContext()) ;
-
-        String testImagePath = Environment.getExternalStorageDirectory() + "/" + "faces.jpg";
-        imagePaths.add(testImagePath);
+        imagePaths.add(Utils.TEST_IMAGE_PATH);
         Utils.saveImagePaths(getApplicationContext(), imagePaths);
-        replaceImage(testImagePath);
+        replaceImage(Utils.TEST_IMAGE_PATH);
 
         configureDropbox();
     }
@@ -83,7 +80,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Toast.makeText(this, item + " clicked", Toast.LENGTH_SHORT).show();
+        if (item.getTitle().toString().equals(getString(R.string.options))) {
+            Intent intent = new Intent(getApplicationContext(), OptionsActivity.class);
+            startActivity(intent);
+        }
         return true;
     }
 
@@ -213,7 +213,6 @@ public class MainActivity extends AppCompatActivity {
         loginButton.setText(isLogged ? "Logout" : "Login");
     }
 
-    //// TODO: CLEAN THIS METHOD!!!
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAMERA_REQUEST && resultCode == RESULT_OK) {
@@ -277,19 +276,21 @@ public class MainActivity extends AppCompatActivity {
 
     public void detectFaces() {
         FaceDetectorTask task = new FaceDetectorTask(getApplicationContext(), imagePath, scaledWidth, scaledHeight);
-        Bitmap image = null;
+        Bitmap image;
         try {
             image = task.execute().get();
+
+            //TODO make use of threads
+
+            int dstWidth = THUMBNAIL_WIDTH;
+            int dstHeight = image.getHeight() * dstWidth / image.getWidth();
+
+            thumbnail = Bitmap.createScaledBitmap(image, dstWidth, dstHeight, false);
+            imageView.setImageBitmap(thumbnail);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
-
-        int dstWidth = THUMBNAIL_WIDTH;
-        int dstHeight = image.getHeight() * dstWidth / image.getWidth();
-
-        thumbnail = Bitmap.createScaledBitmap(image, dstWidth, dstHeight, false);
-        imageView.setImageBitmap(thumbnail);
     }
 }

@@ -15,4 +15,9 @@
     <string name="delete">Delete</string>
     <string name="preview">Preview</string>
     <string name="select">Select</string>
+    <string name="options">Options</string>
+    <string name="result_path">Result path:</string>
+    <string name="max_faces">Max faces:</string>
+    <string name="apply_path">apply path</string>
+    <string name="reset_path">reset path</string>
 </resources>

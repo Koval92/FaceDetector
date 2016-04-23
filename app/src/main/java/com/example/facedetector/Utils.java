@@ -8,7 +8,9 @@ import java.util.Set;
 
 public class Utils {
     public final static String PATHS_PREFS = "path_prefs";
-    private static String resultPath = Environment.getExternalStorageDirectory() + "/result.jpg";
+    public final static String TEST_IMAGE_PATH = Environment.getExternalStorageDirectory() + "/" + "faces.jpg";
+    private static String DEFAULT_RESULT_PATH = Environment.getExternalStorageDirectory() + "/result.jpg";
+    private static String resultPath = DEFAULT_RESULT_PATH;
     private static int maxFaces = 1;
 
     public static void saveImagePaths(Context context, Set<String> imagePaths) {
@@ -34,5 +36,9 @@ public class Utils {
 
     public static void setMaxFaces(int maxFaces) {
         Utils.maxFaces = maxFaces;
+    }
+
+    public static void resetResultPath() {
+        setResultPath(DEFAULT_RESULT_PATH);
     }
 }
