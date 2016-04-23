@@ -10,58 +10,56 @@
     tools:context="com.example.facedetector.GalleryActivity">
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true">
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical">
 
         <TextView
+            android:id="@+id/pathTextView"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/pathTextView"
             android:layout_gravity="center_horizontal"
             android:textSize="16sp" />
 
         <GridLayout
-            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:rowCount="1"
-            android:columnCount="3">
+            android:columnCount="3"
+            android:orientation="horizontal"
+            android:rowCount="1">
 
             <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/select"
                 android:id="@+id/selectButton"
-                android:layout_columnSpan="1" />
-
-            <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/preview"
-                android:id="@+id/previewButton"
-                android:layout_columnSpan="1" />
+                android:layout_columnSpan="1"
+                android:text="@string/select" />
 
             <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/delete"
                 android:id="@+id/deleteButton"
-                android:layout_columnSpan="1" />
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_columnSpan="1"
+                android:text="@string/delete" />
         </GridLayout>
 
+        <ImageView
+            android:id="@+id/previewImageView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
         <ListView
-            tools:listitem="@android:layout/simple_list_item_1"
+            android:id="@+id/pathsListView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/pathsListView"
+            android:layout_gravity="center_horizontal"
             android:choiceMode="singleChoice"
             android:clickable="false"
-            android:layout_gravity="center_horizontal" />
+            tools:listitem="@android:layout/simple_list_item_1" />
 
     </LinearLayout>
 

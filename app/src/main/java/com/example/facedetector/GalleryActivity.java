@@ -2,12 +2,15 @@ package com.example.facedetector;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,9 +23,9 @@ public class GalleryActivity extends AppCompatActivity {
 
     Button selectButton;
     Button deleteButton;
-    Button previewButton;
     ListView pathsListView;
     TextView pathTextView;
+    ImageView previewImageView;
     String path;
 
     @Override
@@ -32,14 +35,14 @@ public class GalleryActivity extends AppCompatActivity {
 
         selectButton = (Button) findViewById(R.id.selectButton);
         deleteButton = (Button) findViewById(R.id.deleteButton);
-        previewButton = (Button) findViewById(R.id.previewButton);
         pathsListView = (ListView) findViewById(R.id.pathsListView);
         pathTextView = (TextView) findViewById(R.id.pathTextView);
+        previewImageView = (ImageView) findViewById(R.id.previewImageView);
 
         final Set<String> pathsSet = Utils.loadImagePaths(getApplicationContext());
         final List<String> paths = new ArrayList<String>(pathsSet);
         path = getIntent().getStringExtra(getString(R.string.chosen_path_extra));
-        pathTextView.setText(getString(R.string.selected_path, path));
+        updatePreview();
 
         final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_single_choice, paths);
         pathsListView.setAdapter(adapter);
@@ -49,7 +52,7 @@ public class GalleryActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
                 path = paths.get(position);
-                pathTextView.setText(getString(R.string.selected_path, path));
+                updatePreview();
             }
         });
 
@@ -66,6 +69,10 @@ public class GalleryActivity extends AppCompatActivity {
         deleteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (paths.size() <= 1) {
+                    Toast.makeText(getApplicationContext(), "You can't delete only path", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 paths.remove(path);
                 pathsSet.remove(path);
                 Utils.saveImagePaths(getApplicationContext(), pathsSet);
@@ -74,13 +81,17 @@ public class GalleryActivity extends AppCompatActivity {
                 pathsListView.performItemClick(pathsListView.getChildAt(pos), pos, pathsListView.getItemIdAtPosition(pos));
             }
         });
+    }
 
-        previewButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Toast.makeText(getApplicationContext(), "not implemented yet", Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void updatePreview() {
+        pathTextView.setText(getString(R.string.selected_path, path));
+
+        Bitmap image = BitmapFactory.decodeFile(path);
+        int dstWidth = 400;
+        int dstHeight = image.getHeight() * dstWidth / image.getWidth();
+        Bitmap thumbnail = Bitmap.createScaledBitmap(image, dstWidth, dstHeight, false);
+
+        previewImageView.setImageBitmap(thumbnail);
     }
 
 }

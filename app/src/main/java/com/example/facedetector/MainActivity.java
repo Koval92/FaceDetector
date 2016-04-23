@@ -138,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeLayoutObjects() {
-        imageView = (ImageView) this.findViewById(R.id.imageView);
+        imageView = (ImageView) this.findViewById(R.id.previewImageView);
         detectFacesButton = (Button) this.findViewById(R.id.detectFacesButton);
         sendButton = (Button) this.findViewById(R.id.sendButton);
         makePhotoButton = (Button) this.findViewById(R.id.makePhotoButton);
