@@ -163,7 +163,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Log.d("detectFacesButton", "clicked");
-                detectFaces();
+                FaceDetectorTask task = new FaceDetectorTask(getApplicationContext(), imagePath, scaledWidth, scaledHeight) {
+                    @Override
+                    protected void onPostExecute(Bitmap image) {
+                        super.onPostExecute(image);
+                        onDetectionFinishes(image);
+                    }
+                };
+                task.execute();
             }
         });
 
@@ -274,23 +281,11 @@ public class MainActivity extends AppCompatActivity {
         Log.i("thumb", thumbnail.getWidth() + " x " + thumbnail.getHeight());
     }
 
-    public void detectFaces() {
-        FaceDetectorTask task = new FaceDetectorTask(getApplicationContext(), imagePath, scaledWidth, scaledHeight);
-        Bitmap image;
-        try {
-            image = task.execute().get();
+    public void onDetectionFinishes(Bitmap image) {
+        int dstWidth = THUMBNAIL_WIDTH;
+        int dstHeight = image.getHeight() * dstWidth / image.getWidth();
 
-            //TODO make use of threads
-
-            int dstWidth = THUMBNAIL_WIDTH;
-            int dstHeight = image.getHeight() * dstWidth / image.getWidth();
-
-            thumbnail = Bitmap.createScaledBitmap(image, dstWidth, dstHeight, false);
-            imageView.setImageBitmap(thumbnail);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
+        thumbnail = Bitmap.createScaledBitmap(image, dstWidth, dstHeight, false);
+        imageView.setImageBitmap(thumbnail);
     }
 }
